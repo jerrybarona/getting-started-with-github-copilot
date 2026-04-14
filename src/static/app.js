@@ -25,6 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <p><strong>Current Participants:</strong></p>
+            <ul class="participants-list">
+              ${details.participants.length > 0 ? details.participants.map(email => `<li>${email} <span class="delete-icon" data-activity="${name}" data-email="${email}">×</span></li>`).join('') : '<li>No participants yet.</li>'}
+            </ul>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
@@ -35,10 +41,43 @@ document.addEventListener("DOMContentLoaded", () => {
         option.textContent = name;
         activitySelect.appendChild(option);
       });
+
+      // Add delete event listeners
+      addDeleteListeners();
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
     }
+  }
+
+  // Function to add delete event listeners
+  function addDeleteListeners() {
+    document.querySelectorAll('.delete-icon').forEach(icon => {
+      icon.addEventListener('click', async (e) => {
+        const activity = e.target.dataset.activity;
+        const email = e.target.dataset.email;
+        
+        if (confirm(`Unregister ${email} from ${activity}?`)) {
+          try {
+            const response = await fetch(
+              `/activities/${encodeURIComponent(activity)}/participants/${encodeURIComponent(email)}`,
+              { method: 'DELETE' }
+            );
+            
+            if (response.ok) {
+              // Refresh the activities list
+              fetchActivities();
+            } else {
+              const result = await response.json();
+              alert(result.detail || 'Failed to unregister');
+            }
+          } catch (error) {
+            console.error('Error unregistering:', error);
+            alert('Failed to unregister. Please try again.');
+          }
+        }
+      });
+    });
   }
 
   // Handle form submission
